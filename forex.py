@@ -19,7 +19,7 @@ class ForexGenius:
         #model.add(Flatten(input_shape=(1, 256, 16)))
         # model.add(Flatten(input_shape=(1, 30, 4)))
         model.add(Reshape((30, 4), input_shape=(1, 30, 4)))
-        model.add(GRU(64, return_sequences=True))
+        model.add(GRU(128, return_sequences=True))
         model.add(Dropout(0.2))
         model.add(GRU(128, return_sequences=False))
         model.add(Dense(128))

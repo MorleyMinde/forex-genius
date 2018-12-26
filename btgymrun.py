@@ -5,68 +5,89 @@ from forex import ForexGenius
 from gym import spaces
 from btgym import BTgymEnv, BTgymBaseStrategy, BTgymDataset
 
-import itertools
-import random
-import os
-
 import numpy as np
 
 import sys
 sys.path.insert(0,'..')
 
-import IPython.display as Display
-import PIL.Image as Image
-
-import matplotlib
-import matplotlib.pyplot as plt
-
-
-def show_rendered_image(rgb_array):
-    """
-    Convert numpy array to RGB image using PILLOW and
-    show it inline using IPykernel.
-    """
-    Display.display(Image.fromarray(rgb_array))
-
-def render_all_modes(env):
-    """
-    Retrieve and show environment renderings
-    for all supported modes.
-    """
-    for mode in env.metadata['render.modes']:
-        print('[{}] mode:'.format(mode))
-        show_rendered_image(env.render(mode))
-
-def take_some_steps(env, some_steps):
-    """Just does it. Acting randomly."""
-    for step in range(some_steps):
-        rnd_action = env.action_space.sample()
-        o, r, d, i = env.step(rnd_action)
-        if d:
-            print('Episode finished,')
-            break
-    print(step+1, 'steps made.\n')
-
 
 class TradingG(BTgymEnv):
     def reset(self, **kwargs):
         observation = super(TradingG, self).reset(**kwargs)
-        render_all_modes(self)
+        #render_all_modes(self)
         return observation['raw']
     def step(self, action):
         observation, reward, done, info = super(TradingG, self).step(OrderedDict([('default_asset', action)]))
-        print(info)
+        print(observation)
+        print("Step: {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Time: {}"
+              .format(info[0]["step"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], info[0]["time"]))
         return observation['raw'], reward, done, info
 
-env = TradingG(filename='btgym/examples/data/DAT_ASCII_EURUSD_M1_2016.csv',
+params = dict(
+        # CSV to Pandas params.
+        sep=';',
+        header=0,
+        index_col=0,
+        parse_dates=True,
+        names=['open', 'high', 'low', 'close', 'volume'],
+
+        # Pandas to BT.feeds params:
+        timeframe=1,  # 1 minute.
+        datetime=0,
+        open=1,
+        high=2,
+        low=3,
+        close=4,
+        volume=5,
+
+        # Random-sampling params:
+        start_weekdays=[0, 1, 2, 3, ],  # Only weekdays from the list will be used for episode start.
+        start_00=True,  # Episode start time will be set to first record of the day (usually 00:00).
+        episode_duration={'days': 2, 'hours': 23, 'minutes': 55},
+        time_gap={'days': 0, 'hours': 5, 'minutes': 55},
+    )
+
+MyDataset = BTgymDataset(
+    filename='data/EURUSD/EURUSD_Candlestick_1_M_2003.csv',
+    **params,
+)
+
+class MyStrategy(BTgymBaseStrategy):
+    """
+    Example subclass of BT server inner computation strategy.
+    """
+
+    def get_raw_state(self):
+        """
+        Default state observation composer.
+
+        Returns:
+             and updates time-embedded environment state observation as [n,4] numpy matrix, where:
+                4 - number of signal features  == state_shape[1],
+                n - time-embedding length  == state_shape[0] == <set by user>.
+
+        Note:
+            `self.raw_state` is used to render environment `human` mode and should not be modified.
+
+        """
+        self.raw_state = np.row_stack(
+            (
+                np.frombuffer(self.data.open.get(size=self.time_dim)),
+                np.frombuffer(self.data.high.get(size=self.time_dim)),
+                np.frombuffer(self.data.low.get(size=self.time_dim)),
+                np.frombuffer(self.data.close.get(size=self.time_dim)),
+                np.frombuffer(self.data.volume.get(size=self.time_dim)),
+            )
+        ).T
+
+        return self.raw_state
+
+env = TradingG(#filename='data/EURUSD/EURUSD_Candlestick_1_M_2003.csv', #'btgym/examples/data/DAT_ASCII_EURUSD_M1_2016.csv',
+               dataset = MyDataset,
+                strategy = MyStrategy,
                    episode_duration={'days': 2, 'hours': 23, 'minutes': 55},
-                    render_ylabel='Price Lines',
-    render_size_episode=(12,8),
-    render_size_human=(8, 3.5),
-    render_size_state=(10, 3.5),
-    render_dpi=75,
                          drawdown_call=50,
-                         state_shape=dict(raw=spaces.Box(low=0,high=1,shape=(30,4))),
+                         state_shape=dict(raw=spaces.Box(low=0,high=1,shape=(30,5))),
                          port=5555,
                          verbose=1,)
 print(env.observation_space)
