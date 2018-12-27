@@ -1,13 +1,16 @@
 from collections import OrderedDict
 
-from btgym import BTgymEnv
+
 from forex import ForexGenius
 from gym import spaces
-from btgym import BTgymEnv, BTgymBaseStrategy, BTgymDataset
+from btgym import BTgymEnv, BTgymDataset
 
-import numpy as np
-
+import backtrader as bt
 import sys
+
+from rl.callbacks import Callback
+from strategy import MyStrategy
+
 sys.path.insert(0,'..')
 
 
@@ -15,30 +18,34 @@ class TradingG(BTgymEnv):
     def reset(self, **kwargs):
         observation = super(TradingG, self).reset(**kwargs)
         #render_all_modes(self)
-        return observation['raw']
+        return observation['my']
     def step(self, action):
         observation, reward, done, info = super(TradingG, self).step(OrderedDict([('default_asset', action)]))
-        print(observation)
+        # print(observation)
         print("Step: {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Time: {}"
               .format(info[0]["step"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], info[0]["time"]))
-        return observation['raw'], reward, done, info
+        return observation['my'], reward, done, info
 
 params = dict(
         # CSV to Pandas params.
-        sep=';',
-        header=0,
-        index_col=0,
-        parse_dates=True,
-        names=['open', 'high', 'low', 'close', 'volume'],
+        parsing_params=dict(
+        # CSV to Pandas params.
+            sep=';',
+            header=0,
+            index_col=0,
+            parse_dates=True,
+            names=['open', 'high', 'low', 'close', 'volume'],
 
-        # Pandas to BT.feeds params:
-        timeframe=1,  # 1 minute.
-        datetime=0,
-        open=1,
-        high=2,
-        low=3,
-        close=4,
-        volume=5,
+            # Pandas to BT.feeds params:
+            timeframe=1,  # 1 minute.
+            datetime=0,
+            open=1,
+            high=2,
+            low=3,
+            close=4,
+            volume=5,
+            openinterest=-1,
+        ),
 
         # Random-sampling params:
         start_weekdays=[0, 1, 2, 3, ],  # Only weekdays from the list will be used for episode start.
@@ -49,53 +56,39 @@ params = dict(
 
 MyDataset = BTgymDataset(
     filename='data/EURUSD/EURUSD_Candlestick_1_M_2003.csv',
+    # filename='btgym/examples/data/DAT_ASCII_EURUSD_M1_2016.csv',
     **params,
 )
 
-class MyStrategy(BTgymBaseStrategy):
-    """
-    Example subclass of BT server inner computation strategy.
-    """
+MyCerebro = bt.Cerebro()
+MyCerebro.addstrategy(MyStrategy,
+                      state_shape={
+                          'raw': spaces.Box(low=0,high=1,shape=(30,4)),
+                          'my': spaces.Box(low=0,high=10000000000,shape=(30,5))
+                      },
 
-    def get_raw_state(self):
-        """
-        Default state observation composer.
+                      state_low=None,
+                      state_high=None,
+                      drawdown_call=50,
+                      )
 
-        Returns:
-             and updates time-embedded environment state observation as [n,4] numpy matrix, where:
-                4 - number of signal features  == state_shape[1],
-                n - time-embedding length  == state_shape[0] == <set by user>.
+MyCerebro.broker.setcash(100.0)
+MyCerebro.broker.setcommission(commission=0.0)
+MyCerebro.addsizer(bt.sizers.SizerFix, stake=50)
+MyCerebro.addanalyzer(bt.analyzers.DrawDown)
 
-        Note:
-            `self.raw_state` is used to render environment `human` mode and should not be modified.
 
-        """
-        self.raw_state = np.row_stack(
-            (
-                np.frombuffer(self.data.open.get(size=self.time_dim)),
-                np.frombuffer(self.data.high.get(size=self.time_dim)),
-                np.frombuffer(self.data.low.get(size=self.time_dim)),
-                np.frombuffer(self.data.close.get(size=self.time_dim)),
-                np.frombuffer(self.data.volume.get(size=self.time_dim)),
-            )
-        ).T
-
-        return self.raw_state
-
-env = TradingG(#filename='data/EURUSD/EURUSD_Candlestick_1_M_2003.csv', #'btgym/examples/data/DAT_ASCII_EURUSD_M1_2016.csv',
+env = TradingG(
                dataset = MyDataset,
-                strategy = MyStrategy,
+                engine=MyCerebro,
                    episode_duration={'days': 2, 'hours': 23, 'minutes': 55},
-                         drawdown_call=50,
-                         state_shape=dict(raw=spaces.Box(low=0,high=1,shape=(30,5))),
                          port=5555,
                          verbose=1,)
 print(env.observation_space)
 
 
 agent = ForexGenius(actions=4,weights='files/forex_weights.h5f')
-
-agent.fit(env)
+agent.fit(env,nb_steps=200000)
 
 env.close()
 

@@ -8,7 +8,7 @@ from keras.optimizers import Adam
 
 from rl.agents import SARSAAgent
 from rl.agents.dqn import DQNAgent
-from rl.policy import BoltzmannQPolicy, GreedyQPolicy
+from rl.policy import BoltzmannQPolicy, GreedyQPolicy, BoltzmannGumbelQPolicy
 from rl.memory import SequentialMemory
 
 import os
@@ -18,7 +18,7 @@ class ForexGenius:
         #model.add(Flatten(input_shape=(1,) + env.observation_space.shape))
         #model.add(Flatten(input_shape=(1, 256, 16)))
         # model.add(Flatten(input_shape=(1, 30, 4)))
-        model.add(Reshape((30, 4), input_shape=(1, 30, 4)))
+        model.add(Reshape((30, 5), input_shape=(1, 30, 5)))
         model.add(GRU(128, return_sequences=True))
         model.add(Dropout(0.2))
         model.add(GRU(128, return_sequences=False))
@@ -35,19 +35,18 @@ class ForexGenius:
         print(model.summary())
         print(model.to_json())
         memory = SequentialMemory(limit=50000, window_length=1)
-        policy = GreedyQPolicy()
-        self.brain = DQNAgent(model=model, nb_actions=actions, memory=memory, nb_steps_warmup=10,
-               target_model_update=1e-2, policy=policy)
+        policy = BoltzmannGumbelQPolicy()
+        # self.brain = DQNAgent(model=model, nb_actions=actions, memory=memory, nb_steps_warmup=10, target_model_update=1e-2, policy=policy)
 
-        #self.brain = SARSAAgent(model=model, nb_actions=actions, nb_steps_warmup=10, policy=policy)
+        self.brain = SARSAAgent(model=model, nb_actions=actions, nb_steps_warmup=10, policy=policy)
         self.brain.compile(Adam(lr=1e-3), metrics=['mae'])
         self.weight_backup = weights
         if os.path.isfile(self.weight_backup):
             self.brain.load_weights(self.weight_backup)
 
-    def fit(self,env):
+    def fit(self,env,nb_steps=5000,callbacks=[]):
         try:
-            self.brain.fit(env, nb_steps=5000, visualize=True, verbose=2)
+            self.brain.fit(env, nb_steps=nb_steps, visualize=True, verbose=2, callbacks=callbacks)
         finally:
             self.save()
 
