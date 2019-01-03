@@ -1,6 +1,5 @@
 from collections import OrderedDict
 
-
 from forex import ForexGenius
 from gym import spaces
 from btgym import BTgymEnv, BTgymDataset
@@ -22,9 +21,34 @@ class TradingG(BTgymEnv):
     def step(self, action):
         observation, reward, done, info = super(TradingG, self).step(OrderedDict([('default_asset', action)]))
         # print(observation)
-        print("Step: {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Time: {}"
-              .format(info[0]["step"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], info[0]["time"]))
+        if done:
+            # print(self.previous)
+            print("Done Step: {} {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Reward: {}".format(info[0]["step"], info[0]["time"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], reward))
+        self.previous = "Done Step Previous: {} {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Reward: {}".format(info[0]["step"], info[0]["time"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], reward)
         return observation['my'], reward, done, info
+
+class History(Callback):
+	def on_train_begin(self, logs={}):
+            print('on_train_begin Logs: {}'.format(logs))
+            return
+
+	def on_train_end(self, logs={}):
+         print('on_train_end Logs: {}'.format(logs))
+         return
+
+	def on_episode_begin(self, epoch, logs={}):
+         print('on_epoch_begin Logs: {}'.format(logs))
+         return
+
+	def on_episode_end(self, epoch, logs={}):
+         print('on_epoch_end Logs: {}'.format(logs))
+         return
+
+	def on_batch_begin(self, batch, logs={}):
+            return
+
+	def on_batch_end(self, batch, logs={}):
+            return
 
 params = dict(
         # CSV to Pandas params.
@@ -55,7 +79,7 @@ params = dict(
     )
 
 MyDataset = BTgymDataset(
-    filename='data/EURUSD/EURUSD_Candlestick_1_M_2003.csv',
+    filename='data/EURUSD/EURUSD_Candlestick_1_M_2005.csv',
     # filename='btgym/examples/data/DAT_ASCII_EURUSD_M1_2016.csv',
     **params,
 )
@@ -69,26 +93,29 @@ MyCerebro.addstrategy(MyStrategy,
 
                       state_low=None,
                       state_high=None,
-                      drawdown_call=50,
+                      drawdown_call=10,
                       )
 
-MyCerebro.broker.setcash(100.0)
-MyCerebro.broker.setcommission(commission=0.0)
-MyCerebro.addsizer(bt.sizers.SizerFix, stake=50)
+MyCerebro.broker.setcash(10000.0)
+MyCerebro.broker.setcommission(commission=0.001)
+MyCerebro.addsizer(bt.sizers.SizerFix, stake=100)
 MyCerebro.addanalyzer(bt.analyzers.DrawDown)
 
 
 env = TradingG(
                dataset = MyDataset,
                 engine=MyCerebro,
-                   episode_duration={'days': 2, 'hours': 23, 'minutes': 55},
-                         port=5555,
+                   episode_duration={'days': 1, 'hours': 0, 'minutes': 0},
+                         port=5557,
+                        data_port=5002,
                          verbose=1,)
 print(env.observation_space)
 
 
 agent = ForexGenius(actions=4,weights='files/forex_weights.h5f')
 agent.fit(env,nb_steps=200000)
+
+# agent.test(env)
 
 env.close()
 
