@@ -11,8 +11,9 @@ from rl.agents.dqn import DQNAgent
 from rl.policy import BoltzmannQPolicy, GreedyQPolicy, BoltzmannGumbelQPolicy
 from rl.memory import SequentialMemory
 from rl.callbacks import Callback
-
 import os
+import subprocess
+
 class ForexGenius(Callback):
     def __init__(self, weights,actions):
         self.model = Sequential()
@@ -38,8 +39,8 @@ class ForexGenius(Callback):
         self.model.add(Activation('relu'))
         self.model.add(Dense(actions))
         self.model.add(Activation('linear'))
-        print(self.model.summary())
-        print(self.model.to_json())
+        # print(self.model.summary())
+        # print(self.model.to_json())
         memory = SequentialMemory(limit=50000, window_length=1)
         policy = BoltzmannGumbelQPolicy()
         # self.brain = DQNAgent(model=model, nb_actions=actions, memory=memory, nb_steps_warmup=10, target_model_update=1e-2, policy=policy)
@@ -59,6 +60,8 @@ class ForexGenius(Callback):
     def save(self):
         self.brain.save_weights(self.weight_backup, overwrite=True)
         print("Save Awesomely")
+        ls_output=subprocess.Popen(["rsync", "-av", "--progress", "files/forex_weights.h5f", "vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/"], stdout=subprocess.PIPE)
+        print("Command Output: {}".format(ls_output))
     def test(self,env):
         self.brain.test(env, nb_episodes=5, visualize=True, verbose=2)
 
