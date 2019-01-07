@@ -96,7 +96,7 @@ MyCerebro.addstrategy(MyStrategy,
                       drawdown_call=10,
                       )
 
-MyCerebro.broker.setcash(10000.0)
+MyCerebro.broker.setcash(100000.0)
 MyCerebro.broker.setcommission(commission=0.001)
 MyCerebro.addsizer(bt.sizers.SizerFix, stake=100)
 MyCerebro.addanalyzer(bt.analyzers.DrawDown)
