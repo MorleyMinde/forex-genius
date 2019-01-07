@@ -14,6 +14,7 @@ import numpy as np
 
 from forex import ForexGenius
 from order.view import print_order_create_response_transactions
+import os.path
 
 
 class CandlePrinter():
@@ -25,7 +26,9 @@ class CandlePrinter():
             'volume' : 6,
         }
         self.prev_observation = np.zeros((30, 5))
-        self.agent = ForexGenius(actions=4,weights='files/forex_weights.h5f')
+        self.weights = "files/forex_weights.h5f"
+        self.agent = ForexGenius(actions=4,weights=self.weights)
+        self.agent_update_time = os.path.getmtime(self.weights)
         self.action = 3
         self.show_orders()
 
@@ -76,6 +79,9 @@ class CandlePrinter():
             self.prev_observation = observation
             #print("Act: {}".format(observation))
             action = np.argmax(self.agent.act(np.reshape(observation,(1,1,30,5))))
+            if self.agent_update_time < os.path.getmtime(self.weights):
+                self.agent = ForexGenius(actions=4,weights=self.weights)
+                self.agent_update_time = os.path.getmtime(self.weights)
             if self.action != action:
                 print("Changing Action:{} to {}".format(self.action,action))
                 if action == 3:
