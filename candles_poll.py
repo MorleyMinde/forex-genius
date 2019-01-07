@@ -80,6 +80,7 @@ class CandlePrinter():
             #print("Act: {}".format(observation))
             action = np.argmax(self.agent.act(np.reshape(observation,(1,1,30,5))))
             if self.agent_update_time < os.path.getmtime(self.weights):
+                print("Updating Model")
                 self.agent = ForexGenius(actions=4,weights=self.weights)
                 self.agent_update_time = os.path.getmtime(self.weights)
             if self.action != action:
