@@ -20,7 +20,7 @@ class TradingG(BTgymEnv):
         return observation['my']
     def step(self, action):
         observation, reward, done, info = super(TradingG, self).step(OrderedDict([('default_asset', action)]))
-        # print(observation)
+        # print(info)
         if done:
             # print(self.previous)
             print("Done Step: {} {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Reward: {}".format(info[0]["step"], info[0]["time"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], reward))
@@ -88,7 +88,7 @@ MyCerebro = bt.Cerebro()
 MyCerebro.addstrategy(MyStrategy,
                       state_shape={
                           'raw': spaces.Box(low=0,high=1,shape=(30,4)),
-                          'my': spaces.Box(low=0,high=10000000000,shape=(30,5))
+                          'my': spaces.Box(low=0,high=2,shape=(30,8))
                       },
 
                       state_low=None,
@@ -96,9 +96,9 @@ MyCerebro.addstrategy(MyStrategy,
                       drawdown_call=10,
                       )
 
-MyCerebro.broker.setcash(100000.0)
+MyCerebro.broker.setcash(100.0)
 MyCerebro.broker.setcommission(commission=0.001)
-MyCerebro.addsizer(bt.sizers.SizerFix, stake=100)
+MyCerebro.addsizer(bt.sizers.SizerFix, stake=10)
 MyCerebro.addanalyzer(bt.analyzers.DrawDown)
 
 
@@ -127,3 +127,9 @@ env.close()
 
 # Finally, evaluate our algorithm for 5 episodes.
 # agent.test(env)
+
+"""
+
+rsync -av --progess files/forex_weights.h5f vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/
+
+"""

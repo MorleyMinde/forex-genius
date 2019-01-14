@@ -8,7 +8,7 @@ from keras.optimizers import Adam
 
 from rl.agents import SARSAAgent
 from rl.agents.dqn import DQNAgent
-from rl.policy import BoltzmannQPolicy, GreedyQPolicy, BoltzmannGumbelQPolicy
+from rl.policy import MaxBoltzmannQPolicy
 from rl.memory import SequentialMemory
 from rl.callbacks import Callback
 import os
@@ -20,7 +20,7 @@ class ForexGenius(Callback):
         #model.add(Flatten(input_shape=(1,) + env.observation_space.shape))
         #model.add(Flatten(input_shape=(1, 256, 16)))
         # model.add(Flatten(input_shape=(1, 30, 4)))
-        self.model.add(Reshape((30, 5), input_shape=(1, 30, 5)))
+        self.model.add(Reshape((30, 8), input_shape=(1, 30, 8)))
         self.model.add(GRU(512, return_sequences=True))
         self.model.add(Dropout(0.2))
         self.model.add(GRU(256, return_sequences=False))
@@ -42,7 +42,7 @@ class ForexGenius(Callback):
         # print(self.model.summary())
         # print(self.model.to_json())
         memory = SequentialMemory(limit=50000, window_length=1)
-        policy = BoltzmannGumbelQPolicy()
+        policy = MaxBoltzmannQPolicy()
         # self.brain = DQNAgent(model=model, nb_actions=actions, memory=memory, nb_steps_warmup=10, target_model_update=1e-2, policy=policy)
 
         self.brain = SARSAAgent(model=self.model, nb_actions=actions, nb_steps_warmup=10, policy=policy)
@@ -60,8 +60,8 @@ class ForexGenius(Callback):
     def save(self):
         self.brain.save_weights(self.weight_backup, overwrite=True)
         print("Save Awesomely")
-        ls_output=subprocess.Popen(["rsync", "-av", "--progress", "files/forex_weights.h5f", "vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/"], stdout=subprocess.PIPE)
-        print("Command Output: {}".format(ls_output))
+        # ls_output=subprocess.Popen(["rsync", "-av", "--progress", "files/forex_weights.h5f", "vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/"], stdout=subprocess.PIPE)
+        # print("Command Output: {}".format(ls_output))
     def test(self,env):
         self.brain.test(env, nb_episodes=5, visualize=True, verbose=2)
 

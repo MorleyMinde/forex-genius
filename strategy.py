@@ -1,8 +1,13 @@
 from btgym import BTgymBaseStrategy
+from btgym.strategy.utils import tanh
 import math
 import numpy as np
 
 class MyStrategy(BTgymBaseStrategy):
+
+    def __init__(self, **kwargs):
+        self.avg_period = 30
+        super(MyStrategy, self).__init__(**kwargs)
     """
     Example subclass of BT server inner computation strategy.
     """
@@ -78,7 +83,33 @@ class MyStrategy(BTgymBaseStrategy):
                 np.frombuffer(self.data.low.get(size=self.time_dim)),
                 np.frombuffer(self.data.close.get(size=self.time_dim)),
                 np.frombuffer(self.data.volume.get(size=self.time_dim)),
+
             )
         ).T
 
-        return my_state
+        my_state[:,4] = my_state[:,4] / 1000000000
+
+        x_broker = np.concatenate(
+            [
+                np.asarray(self.broker_stat['unrealized_pnl'])[..., None],
+                np.asarray(self.broker_stat['pos_direction'])[..., None],
+                np.asarray(self.broker_stat['pos_duration'])[..., None],
+            ],
+            axis=-1
+        )
+        # x_broker = tanh(np.gradient(x_broker, axis=-1) * self.p.state_int_scale)
+        if x_broker.shape[0] == 30:
+            # print(x_broker)
+            x_broker = np.concatenate((my_state,x_broker),axis=1)
+            # print("Shapes: {},{},{}".format(my_state.shape, x_broker.shape, product.shape))
+        if x_broker.shape[0] == 29:
+            # print("self.broker_stat: {}".format(self.broker_stat))
+            # print(x_broker)
+            x_broker = np.append(np.zeros((1, 3)),x_broker, axis=0)
+            x_broker = np.concatenate((my_state,x_broker),axis=1)
+        # print("Shapes: {},{}".format(my_state.shape, x_broker.shape[0]))
+        #product = np.concatenate((my_state,x_broker),axis=1)
+        #print("Shapes: {},{},{}".format(my_state.shape, x_broker.shape, product.shape))
+        #print("This: {}".format(np.concatenate((my_state,x_broker),axis=-1)))
+        # print("This: {} {}".format(self.p.state_shape['raw'].shape[0],self.avg_period))
+        return x_broker

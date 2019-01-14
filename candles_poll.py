@@ -3,10 +3,11 @@
 import argparse
 
 from v20 import V20Timeout, V20ConnectionError
+from v20.account import Account
 
 import common.config
 import common.args
-from datetime import datetime
+from datetime import datetime, timezone
 import curses
 import random
 import time
@@ -15,6 +16,7 @@ import numpy as np
 from forex import ForexGenius
 from order.view import print_order_create_response_transactions
 import os.path
+import dateutil.parser
 
 
 class CandlePrinter():
@@ -30,6 +32,8 @@ class CandlePrinter():
         self.agent = ForexGenius(actions=4,weights=self.weights)
         self.agent_update_time = os.path.getmtime(self.weights)
         self.action = 3
+        self.external_observation = np.zeros((30,3))
+        self.current_trade = None
         self.show_orders()
 
     def set_instrument(self, instrument):
@@ -58,10 +62,48 @@ class CandlePrinter():
         # Get rid of the oldest candles
         self.candles = self.candles[-self.max_candle_count():]
 
+
         self.use_agent()
             # print(observation)
         return True
+    def update_external_data(self):
+        api = self.get_api()
 
+        response = api.account.get(self.args.config.active_account)
+
+        #
+        # Extract the Account representation from the response and use
+        # it to create an Account wrapper
+        #
+        account = response.get("account", 200)
+
+        #
+        # Extract the Account representation from the response and use
+        # it to create an Account wrapper
+        #
+        # account = Account(response.get("account", 200))
+        response = api.account.changes(
+            self.args.config.active_account,
+            sinceTransactionID=int(account.lastTransactionID)
+        )
+
+        res = response.get("state",200)
+        action = 0.0
+        if self.action == 1:
+          action = 1.0
+        if self.action == 2:
+          action = -1.0
+        pos_period = 0.0
+        self.current_trade = None
+        for trade in account.trades:
+            self.current_trade = trade
+        if self.current_trade != None:
+            a = datetime.now(timezone.utc)
+            b = dateutil.parser.parse(self.current_trade.openTime)
+            c = a - b
+            pos_period = divmod(c.days * 86400 + c.seconds, 60)
+            pos_period = pos_period[0]
+        return [res.unrealizedPL,action,pos_period]
     def use_agent(self):
         observation = np.zeros((30, 5))
         i = 0;
@@ -75,10 +117,18 @@ class CandlePrinter():
             observation[i][4] = candle.volume
             i += 1
 
-        if not np.all(np.equal(self.prev_observation, observation)) :
+        if not np.all(np.equal(self.prev_observation, observation)):
+            print(datetime.now())
+            self.external_observation = np.delete(self.external_observation, 1, 0)
+            if self.external_observation.shape[0] < 29:
+               self.external_observation = np.append(np.zeros((29 - self.external_observation.shape[0],3)),self.external_observation,axis=0)
+            # self.external_observation = np.insert(self.external_observation, 30, self.update_external_data(),axis=-1)
+            self.external_observation = np.append(self.external_observation, [self.update_external_data()], axis = 0)
             self.prev_observation = observation
+            final_observation = np.concatenate((observation,self.external_observation), axis = 1)
             #print("Act: {}".format(observation))
-            action = np.argmax(self.agent.act(np.reshape(observation,(1,1,30,5))))
+            action = np.argmax(self.agent.act(np.reshape(final_observation,(1,1,30,8))))
+
             if self.agent_update_time < os.path.getmtime(self.weights):
                 print("Updating Model On Action: {}".format(self.action))
                 self.agent = ForexGenius(actions=4,weights=self.weights)
@@ -102,6 +152,7 @@ class CandlePrinter():
         response = api.trade.list_open(self.args.config.active_account)
 
         for trade in reversed(response.get("trades", 200)):
+            self.current_trade = trade
             if trade.currentUnits < 0:
                 self.action = 2
             if trade.currentUnits > 0:
@@ -110,7 +161,6 @@ class CandlePrinter():
         return
 
     def close_orders(self):
-        print("Closing Order")
         api = self.get_api()
         response = api.trade.list_open(self.args.config.active_account)
 
@@ -130,8 +180,7 @@ class CandlePrinter():
             )
 
             print_order_create_response_transactions(response)
-
-
+        self.current_trade = None
         return
 
     def buy(self):
@@ -146,6 +195,7 @@ class CandlePrinter():
         print("Response: {} ({})".format(response.status, response.reason))
         print("")
         print_order_create_response_transactions(response)
+        self.show_orders()
     def get_api(self):
         parser = argparse.ArgumentParser()
 
@@ -256,7 +306,8 @@ class CandlePrinter():
         # the results
         #
         while True:
-            time.sleep(1)
+            time.sleep(58)
+            # time.sleep(1)
 
             kwargs = {
                 'granularity': granularity,
