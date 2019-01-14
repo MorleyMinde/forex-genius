@@ -184,9 +184,9 @@ class CandlePrinter():
         return
 
     def buy(self):
-        self.order(1000)
+        self.order(100000)
     def sell(self):
-        self.order(-1000)
+        self.order(-100000)
     def order(self,units):
         api = self.get_api()
         response = api.order.market(

@@ -60,8 +60,9 @@ class ForexGenius(Callback):
     def save(self):
         self.brain.save_weights(self.weight_backup, overwrite=True)
         print("Save Awesomely")
-        # ls_output=subprocess.Popen(["rsync", "-av", "--progress", "files/forex_weights.h5f", "vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/"], stdout=subprocess.PIPE)
-        # print("Command Output: {}".format(ls_output))
+        # rsync -av --progress files/forex_weights.h5f vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/
+        ls_output=subprocess.Popen(["rsync", "-av", "--progress", "files/forex_weights.h5f", "vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/"], stdout=subprocess.PIPE)
+        print("Command Output: {}".format(ls_output))
     def test(self,env):
         self.brain.test(env, nb_episodes=5, visualize=True, verbose=2)
 
