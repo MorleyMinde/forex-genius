@@ -17,6 +17,7 @@ from forex import ForexGenius
 from order.view import print_order_create_response_transactions
 import os.path
 import dateutil.parser
+import _thread
 
 
 class CandlePrinter():
@@ -184,9 +185,9 @@ class CandlePrinter():
         return
 
     def buy(self):
-        self.order(10000)
+        self.order(5000)
     def sell(self):
-        self.order(-10000)
+        self.order(-5000)
     def order(self,units):
         api = self.get_api()
         response = api.order.market(
@@ -356,6 +357,7 @@ def main():
 
     args = parser.parse_args()
 
+    print("Innitial: {} Args: {}".format(common.args.instrument,args))
     account_id = args.config.active_account
 
     #
