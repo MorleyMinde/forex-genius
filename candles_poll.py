@@ -21,7 +21,7 @@ import matplotlib.dates as mdates
 import pandas as pd
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
-from matplotlib.finance import candlestick_ohlc, volume_overlay3
+from mpl_finance import candlestick_ohlc
 
 
 class CandlePrinter():
