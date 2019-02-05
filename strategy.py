@@ -92,8 +92,8 @@ class MyStrategy(BTgymBaseStrategy):
         x_broker = np.concatenate(
             [
                 np.asarray(self.broker_stat['unrealized_pnl'])[..., None],
-                np.asarray(self.broker_stat['pos_direction'])[..., None],
-                np.asarray(self.broker_stat['pos_duration'])[..., None],
+                # np.asarray(self.broker_stat['pos_direction'])[..., None],
+                # np.asarray(self.broker_stat['pos_duration'])[..., None],
             ],
             axis=-1
         )
@@ -105,7 +105,7 @@ class MyStrategy(BTgymBaseStrategy):
         if x_broker.shape[0] == 29:
             # print("self.broker_stat: {}".format(self.broker_stat))
             # print(x_broker)
-            x_broker = np.append(np.zeros((1, 3)),x_broker, axis=0)
+            x_broker = np.append(np.zeros((1, 1)),x_broker, axis=0)
             x_broker = np.concatenate((my_state,x_broker),axis=1)
         # print("Shapes: {},{}".format(my_state.shape, x_broker.shape[0]))
         #product = np.concatenate((my_state,x_broker),axis=1)

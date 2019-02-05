@@ -9,23 +9,65 @@ import sys
 
 from rl.callbacks import Callback
 from strategy import MyStrategy
+import matplotlib.pyplot as plt
+from matplotlib.finance import candlestick_ohlc, volume_overlay3
+import matplotlib.dates as mdates
+import numpy as np
+import pandas as pd
+from datetime import datetime, timedelta
 
 sys.path.insert(0,'..')
-
 
 class TradingG(BTgymEnv):
     def reset(self, **kwargs):
         observation = super(TradingG, self).reset(**kwargs)
         #render_all_modes(self)
-        return observation['my']
+        data = self.getImageArray(observation['my'])
+        return data
+    def datetime_range(self,start, end, delta):
+        current = start
+        while current < end:
+            yield current
+            current += delta
+    def getImageArray(self,observation):
+        dts = [mdates.date2num(dt) for dt in self.datetime_range(datetime(2016, 9, 1, 7), datetime(2016, 9, 1, 9), timedelta(minutes=1))]
+
+        dts = dts[:len(observation)]
+        dts = np.reshape(np.array([dts]),(30,1))
+        observation_data = np.append(dts,observation,axis=1)
+        df = pd.DataFrame(data=observation_data,columns=['Time','Open','High', 'Low', 'Close', 'Volume', 'UPNL'])
+        #print(df)
+
+
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3,1]},dpi=60)
+        ax1.xaxis_date()
+        candlestick_ohlc(ax1, df.values, width=0.0005, colorup='green', colordown='red')
+
+        def default_color(index, open_price, close_price, low, high):
+            return 'r' if observation[index][0] > observation[index][3] else 'g'
+        x = np.arange(len(observation))
+        candle_colors = [default_color(i, observation[:,1], observation[:,2], observation[:,3], observation[:,4]) for i in x]
+        ax2.bar(observation_data[:,0],observation[:,4],0.0005, color=candle_colors)
+        ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        plt.xticks(rotation=90)
+        fig.tight_layout()
+        data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+        data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        # print(data.shape)
+        # plt.show()
+        # exit()
+        plt.close(fig)
+        return data
     def step(self, action):
         observation, reward, done, info = super(TradingG, self).step(OrderedDict([('default_asset', action)]))
-        # print(info)
+        """
         if done:
-            # print(self.previous)
+            print(self.previous)
             print("Done Step: {} {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Reward: {}".format(info[0]["step"], info[0]["time"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], reward))
+        """
+        print("Step: {} {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Reward: {}".format(info[0]["step"], info[0]["time"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], reward))
         self.previous = "Done Step Previous: {} {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Reward: {}".format(info[0]["step"], info[0]["time"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], reward)
-        return observation['my'], reward, done, info
+        return self.getImageArray(observation['my']), reward, done, info
 
 class History(Callback):
 	def on_train_begin(self, logs={}):
@@ -88,17 +130,17 @@ MyCerebro = bt.Cerebro()
 MyCerebro.addstrategy(MyStrategy,
                       state_shape={
                           'raw': spaces.Box(low=0,high=1,shape=(30,4)),
-                          'my': spaces.Box(low=0,high=2,shape=(30,8))
+                          'my': spaces.Box(low=0,high=2,shape=(30,6))
                       },
 
                       state_low=None,
                       state_high=None,
-                      drawdown_call=10,
+                      drawdown_call=100,
                       )
 
 MyCerebro.broker.setcash(100.0)
-MyCerebro.broker.setcommission(commission=0.001)
-MyCerebro.addsizer(bt.sizers.SizerFix, stake=10)
+MyCerebro.broker.setcommission(commission=0.0)
+MyCerebro.addsizer(bt.sizers.SizerFix, stake=50)
 MyCerebro.addanalyzer(bt.analyzers.DrawDown)
 
 
@@ -112,7 +154,7 @@ env = TradingG(
 print(env.observation_space)
 
 
-agent = ForexGenius(actions=4,weights='files/forex_weights.h5f')
+agent = ForexGenius(actions=4,weights='files/forex_conv_weights.h5f')
 agent.fit(env,nb_steps=200000)
 
 # agent.test(env)

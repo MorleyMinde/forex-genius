@@ -17,7 +17,11 @@ from forex import ForexGenius
 from order.view import print_order_create_response_transactions
 import os.path
 import dateutil.parser
-import _thread
+import matplotlib.dates as mdates
+import pandas as pd
+from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
+from matplotlib.finance import candlestick_ohlc, volume_overlay3
 
 
 class CandlePrinter():
@@ -105,6 +109,41 @@ class CandlePrinter():
             pos_period = divmod(c.days * 86400 + c.seconds, 60)
             pos_period = pos_period[0]
         return [res.unrealizedPL,action,pos_period]
+        #return [res.unrealizedPL]
+    def datetime_range(self,start, end, delta):
+        current = start
+        while current < end:
+            yield current
+            current += delta
+    def getImageArray(self,observation):
+        dts = [mdates.date2num(dt) for dt in self.datetime_range(datetime(2016, 9, 1, 7), datetime(2016, 9, 1, 9), timedelta(minutes=1))]
+
+        dts = dts[:len(observation)]
+        dts = np.reshape(np.array([dts]),(30,1))
+        observation_data = np.append(dts,observation,axis=1)
+        df = pd.DataFrame(data=observation_data,columns=['Time','Open','High', 'Low', 'Close', 'Volume', 'UPNL'])
+        #print(df)
+
+
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3,1]},dpi=60)
+        ax1.xaxis_date()
+        candlestick_ohlc(ax1, df.values, width=0.0005, colorup='green', colordown='red')
+
+        def default_color(index, open_price, close_price, low, high):
+            return 'r' if observation[index][0] > observation[index][3] else 'g'
+        x = np.arange(len(observation))
+        candle_colors = [default_color(i, observation[:,1], observation[:,2], observation[:,3], observation[:,4]) for i in x]
+        ax2.bar(observation_data[:,0],observation[:,4],0.0005, color=candle_colors)
+        ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        plt.xticks(rotation=90)
+        fig.tight_layout()
+        data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+        data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        # print(data.shape)
+        # plt.show()
+        # exit()
+        plt.close(fig)
+        return data
     def use_agent(self):
         observation = np.zeros((30, 5))
         i = 0;
@@ -128,7 +167,10 @@ class CandlePrinter():
             self.prev_observation = observation
             final_observation = np.concatenate((observation,self.external_observation), axis = 1)
             #print("Act: {}".format(observation))
-            action = np.argmax(self.agent.act(np.reshape(final_observation,(1,1,30,8))))
+            # action = np.argmax(self.agent.act(np.reshape(final_observation,(1,1,30,8))))
+            image_data = self.getImageArray(final_observation[:,:6])
+            image_data = image_data.reshape((1,)+image_data.shape)
+            action = np.argmax(self.agent.act(image_data))
 
             if self.agent_update_time < os.path.getmtime(self.weights):
                 print("Updating Model On Action: {}".format(self.action))
