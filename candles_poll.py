@@ -143,7 +143,7 @@ class CandlePrinter():
         # plt.show()
         # exit()
         plt.close(fig)
-        return data
+        return data/255
     def use_agent(self):
         observation = np.zeros((30, 5))
         i = 0;

@@ -18,7 +18,11 @@ from datetime import datetime, timedelta
 
 sys.path.insert(0,'..')
 
+
 class TradingG(BTgymEnv):
+    def __init__(self, **kwargs):
+        super(TradingG, self).__init__(**kwargs)
+        self.dts = []
     def reset(self, **kwargs):
         observation = super(TradingG, self).reset(**kwargs)
         #render_all_modes(self)
@@ -29,12 +33,13 @@ class TradingG(BTgymEnv):
         while current < end:
             yield current
             current += delta
-    def getImageArray(self,observation):
-        dts = [mdates.date2num(dt) for dt in self.datetime_range(datetime(2016, 9, 1, 7), datetime(2016, 9, 1, 9), timedelta(minutes=1))]
 
-        dts = dts[:len(observation)]
-        dts = np.reshape(np.array([dts]),(30,1))
-        observation_data = np.append(dts,observation,axis=1)
+    def getImageArray(self,observation):
+        if len(self.dts) == 0:
+            dts = [mdates.date2num(dt) for dt in self.datetime_range(datetime(2016, 9, 1, 7), datetime(2016, 9, 1, 9), timedelta(minutes=1))]
+            dts = dts[:len(observation)]
+            self.dts = np.reshape(np.array([dts]),(30,1))
+        observation_data = np.append(self.dts,observation,axis=1)
         df = pd.DataFrame(data=observation_data,columns=['Time','Open','High', 'Low', 'Close', 'Volume', 'UPNL'])
         #print(df)
 
@@ -57,15 +62,14 @@ class TradingG(BTgymEnv):
         # plt.show()
         # exit()
         plt.close(fig)
-        return data
+        return data/255
     def step(self, action):
         observation, reward, done, info = super(TradingG, self).step(OrderedDict([('default_asset', action)]))
-        """
+
         if done:
             print(self.previous)
-            print("Done Step: {} {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Reward: {}".format(info[0]["step"], info[0]["time"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], reward))
-        """
-        print("Step: {} {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Reward: {}".format(info[0]["step"], info[0]["time"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], reward))
+            print("Step: {} {} Broker Cash: {} Broker Value: {} Reward: {} Action: {} Message: {}".format(info[0]["step"], info[0]["time"], info[0]["broker_cash"], info[0]["broker_value"], reward, info[0]["action"], info[0]["broker_message"]))
+
         self.previous = "Done Step Previous: {} {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Reward: {}".format(info[0]["step"], info[0]["time"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], reward)
         return self.getImageArray(observation['my']), reward, done, info
 
@@ -116,8 +120,8 @@ params = dict(
         # Random-sampling params:
         start_weekdays=[0, 1, 2, 3, ],  # Only weekdays from the list will be used for episode start.
         start_00=True,  # Episode start time will be set to first record of the day (usually 00:00).
-        episode_duration={'days': 2, 'hours': 23, 'minutes': 55},
-        time_gap={'days': 0, 'hours': 5, 'minutes': 55},
+        episode_duration={'days': 0, 'hours': 2, 'minutes': 0},
+        # time_gap={'days': 0, 'hours': 5, 'minutes': 55},
     )
 
 MyDataset = BTgymDataset(
@@ -140,7 +144,7 @@ MyCerebro.addstrategy(MyStrategy,
 
 MyCerebro.broker.setcash(100.0)
 MyCerebro.broker.setcommission(commission=0.0)
-MyCerebro.addsizer(bt.sizers.SizerFix, stake=50)
+MyCerebro.addsizer(bt.sizers.SizerFix, stake=10)
 MyCerebro.addanalyzer(bt.analyzers.DrawDown)
 
 
@@ -155,7 +159,7 @@ print(env.observation_space)
 
 
 agent = ForexGenius(actions=4,weights='files/forex_conv_weights.h5f')
-agent.fit(env,nb_steps=200000)
+agent.fit(env,nb_steps=1000000)
 
 # agent.test(env)
 
