@@ -158,7 +158,6 @@ class CandlePrinter():
             i += 1
 
         if not np.all(np.equal(self.prev_observation, observation)):
-            print(datetime.now())
             self.external_observation = np.delete(self.external_observation, 1, 0)
             if self.external_observation.shape[0] < 29:
                self.external_observation = np.append(np.zeros((29 - self.external_observation.shape[0],3)),self.external_observation,axis=0)

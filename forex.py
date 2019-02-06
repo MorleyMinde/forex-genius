@@ -17,10 +17,11 @@ import subprocess
 from keras.models import load_model
 
 class ForexGenius(Callback):
-    def __init__(self, weights,actions):
+    def __init__(self, weights,actions, training=True):
         model = None
         if os.path.isfile('files/forex_complete_model.h5f'):
             model = load_model('files/forex_complete_model.h5f')
+            self.model = model
         else:
             base_model = applications.InceptionV3(weights='imagenet', include_top=False, input_shape=(288, 384,3))
             base_model.trainable = False
