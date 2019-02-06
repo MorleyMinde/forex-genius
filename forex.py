@@ -8,7 +8,7 @@ from keras.optimizers import Adam
 
 from rl.agents import SARSAAgent
 from rl.agents.dqn import DQNAgent
-from rl.policy import MaxBoltzmannQPolicy, BoltzmannGumbelQPolicy, BoltzmannQPolicy, GreedyQPolicy, EpsGreedyQPolicy, SoftmaxPolicy, LinearAnnealedPolicy
+from rl.policy import MaxBoltzmannQPolicy, BoltzmannGumbelQPolicy, BoltzmannQPolicy, GreedyQPolicy, EpsGreedyQPolicy, LinearAnnealedPolicy
 from rl.memory import SequentialMemory
 from rl.callbacks import Callback
 from keras import applications
