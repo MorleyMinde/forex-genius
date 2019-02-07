@@ -40,6 +40,7 @@ class CandlePrinter():
         self.external_observation = np.zeros((30,3))
         self.current_trade = None
         self.show_orders()
+        self.dts = []
 
     def set_instrument(self, instrument):
         self.instrument = instrument
@@ -115,33 +116,71 @@ class CandlePrinter():
         while current < end:
             yield current
             current += delta
-    def getImageArray(self,observation):
-        dts = [mdates.date2num(dt) for dt in self.datetime_range(datetime(2016, 9, 1, 7), datetime(2016, 9, 1, 9), timedelta(minutes=1))]
+    def getImageArray(self,observation, action):
+        """
+            Get the time range
+        """
+        if len(self.dts) == 0:
+            dts = [mdates.date2num(dt) for dt in self.datetime_range(datetime(2016, 9, 1, 7), datetime(2016, 9, 1, 9), timedelta(minutes=1))]
+            dts = dts[:len(observation)]
+            self.dts = np.reshape(np.array([dts]),(30,1))
+        observation = np.append(self.dts,observation,axis=1)
+        # observation = np.append(self.dts,observation,axis=1)
 
-        dts = dts[:len(observation)]
-        dts = np.reshape(np.array([dts]),(30,1))
-        observation_data = np.append(dts,observation,axis=1)
-        df = pd.DataFrame(data=observation_data,columns=['Time','Open','High', 'Low', 'Close', 'Volume', 'UPNL'])
-        #print(df)
+        dpi = 60
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True, gridspec_kw={'height_ratios': [3,1,1,0.2]},figsize=(384/dpi, 288/dpi),dpi=dpi)
 
-
-        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3,1]},dpi=60)
         ax1.xaxis_date()
-        candlestick_ohlc(ax1, df.values, width=0.0005, colorup='green', colordown='red')
+        candlestick_ohlc(ax1, observation, width=0.0005, colorup='green', colordown='red')
 
-        def default_color(index, open_price, close_price, low, high):
-            return 'r' if observation[index][0] > observation[index][3] else 'g'
+        """
+        Set the Volume
+        """
+
+        def default_color(index, open_price, low, high,close_price):
+            return 'r' if open_price[index] > close_price[index] else 'g'
         x = np.arange(len(observation))
         candle_colors = [default_color(i, observation[:,1], observation[:,2], observation[:,3], observation[:,4]) for i in x]
-        ax2.bar(observation_data[:,0],observation[:,4],0.0005, color=candle_colors)
-        ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-        plt.xticks(rotation=90)
-        fig.tight_layout()
+        ax2.bar(observation[:,0],observation[:,5],0.0005, color=candle_colors)
+
+        """
+        Set the Unrealized PNL
+        """
+        ax3.fill_between(observation[:,0],observation[:,6])
+        ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+
+        """
+        Set the actions
+        """
+
+        try:
+            self.actions
+        except:
+            self.actions = np.zeros((30,))
+        else:
+            self.actions = np.append(self.actions,action)
+            self.actions = np.delete(self.actions,0)
+
+        def action_color(index,a):
+            if a[index] == 0:
+                return 'c'
+            elif a[index] == 1:
+                return 'g'
+            elif a[index] == 2:
+                return 'r'
+            elif a[index] == 3:
+                return 'b'
+            print(a[index])
+
+        bar_colors  = [action_color(i,self.actions) for i in x]
+        # print("Colors: {}".format(bar_colors))
+        ax4.bar(observation[:,0],np.ones((30,)),0.0005, color=bar_colors)
+        # plt.xticks(rotation=90)
+        # fig.tight_layout()
+        fig.canvas.draw()
         data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
         data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-        # print(data.shape)
-        # plt.show()
-        # exit()
+        plt.show()
         plt.close(fig)
         return data/255
     def use_agent(self):
@@ -167,7 +206,7 @@ class CandlePrinter():
             final_observation = np.concatenate((observation,self.external_observation), axis = 1)
             #print("Act: {}".format(observation))
             # action = np.argmax(self.agent.act(np.reshape(final_observation,(1,1,30,8))))
-            image_data = self.getImageArray(final_observation[:,:6])
+            image_data = self.getImageArray(final_observation[:,:6],self.action)
             image_data = image_data.reshape((1,)+image_data.shape)
             action = np.argmax(self.agent.act(image_data))
 
@@ -188,7 +227,7 @@ class CandlePrinter():
                     if self.action == 1:
                         self.close_orders()
                     self.sell()
-                self.action = action
+            self.action = action
     def show_orders(self):
         api = self.get_api()
         response = api.trade.list_open(self.args.config.active_account)

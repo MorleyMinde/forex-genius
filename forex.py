@@ -23,7 +23,7 @@ class ForexGenius(Callback):
             model = load_model('files/forex_complete_model.h5f')
             self.model = model
         else:
-            base_model = applications.InceptionV3(weights='imagenet', include_top=False, input_shape=(288, 384,3))
+            base_model = applications.InceptionResNetV2(weights='imagenet', include_top=False, input_shape=(288, 384,3))
             base_model.trainable = False
             for layer in base_model.layers:
                 layer.trainable = False
