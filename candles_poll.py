@@ -40,6 +40,7 @@ class CandlePrinter():
         self.external_observation = np.zeros((30,3))
         self.current_trade = None
         self.show_orders()
+        self.close_orders()
         self.dts = []
 
     def set_instrument(self, instrument):

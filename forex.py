@@ -73,7 +73,10 @@ class ForexGenius(Callback):
         try:
             self.brain.fit(env, nb_steps=nb_steps, visualize=True, verbose=2, callbacks=[self])
         finally:
-            self.save()
+            try:
+                self.save()
+            finally:
+                self.save()
 
     def save(self):
         self.times = self.times + 1
