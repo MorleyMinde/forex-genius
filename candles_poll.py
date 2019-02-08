@@ -181,7 +181,7 @@ class CandlePrinter():
         fig.canvas.draw()
         data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
         data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-        plt.show()
+        # plt.show()
         plt.close(fig)
         return data/255
     def use_agent(self):
