@@ -214,6 +214,7 @@ env.close()
 
 """
 
-rsync -av --progess files/forex_weights.h5f vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/
+tar -cjvf archive.tar.bz2 stuff
+rsync -av --progress files/forex_complete_model.h5f vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/
 
 """
