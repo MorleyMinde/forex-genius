@@ -19,8 +19,8 @@ from keras.models import load_model
 class ForexGenius(Callback):
     def __init__(self, weights,actions, training=True):
         model = None
-        if os.path.isfile('files/forex_complete_model.h5f'):
-            model = load_model('files/forex_complete_model.h5f')
+        if os.path.isfile(weights):
+            model = load_model(weights)
             self.model = model
         else:
             base_model = applications.InceptionResNetV2(weights='imagenet', include_top=False, input_shape=(288, 384,3))
@@ -80,14 +80,13 @@ class ForexGenius(Callback):
 
     def save(self):
         self.times = self.times + 1
-        self.brain.save_weights(self.weight_backup, overwrite=True)
-        self.brain.model.save('files/forex_complete_model.h5f')
+        self.brain.model.save(self.weight_backup)
         print("Save Awesomely")
 
-        if self.times == 100:
-            ls_output=subprocess.Popen(["rsync", "-av", "--progress", "files/forex_complete_model.h5f", "vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/"], stdout=subprocess.PIPE)
-            print("Command Output: {}".format(ls_output))
-            self.times == 0
+        #if self.times == 100:
+        #    ls_output=subprocess.Popen(["rsync", "-av", "--progress", "files/forex_complete_model.h5f", "vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/"], stdout=subprocess.PIPE)
+        #    print("Command Output: {}".format(ls_output))
+        #    self.times == 0
         # rsync -av --progress files/forex_complete_model.h5f vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/
         # ls_output=subprocess.Popen(["rsync", "-av", "--progress", "files/forex_complete_model.h5f", "vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/"], stdout=subprocess.PIPE)
         # print("Command Output: {}".format(ls_output))

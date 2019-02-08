@@ -33,14 +33,13 @@ class CandlePrinter():
             'volume' : 6,
         }
         self.prev_observation = np.zeros((30, 5))
-        self.weights = "files/forex_weights.h5f"
+        self.weights = "files/forex_complete_model.h5f"
         self.agent = ForexGenius(actions=4,weights=self.weights)
         self.agent_update_time = os.path.getmtime(self.weights)
         self.action = 3
         self.external_observation = np.zeros((30,3))
         self.current_trade = None
         self.show_orders()
-        self.close_orders()
         self.dts = []
 
     def set_instrument(self, instrument):

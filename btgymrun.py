@@ -196,7 +196,7 @@ env = TradingG(
 print(env.observation_space)
 
 
-agent = ForexGenius(actions=4,weights='files/forex_conv_weights.h5f')
+agent = ForexGenius(actions=4,weights='files/forex_complete_model.h5f')
 agent.fit(env,nb_steps=1000000)
 
 # agent.test(env)
