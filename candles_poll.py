@@ -195,39 +195,38 @@ class CandlePrinter():
             observation[i][3] = c.c
             observation[i][4] = candle.volume
             i += 1
+        print("Found")
+        self.external_observation = np.delete(self.external_observation, 1, 0)
+        if self.external_observation.shape[0] < 29:
+            self.external_observation = np.append(np.zeros((29 - self.external_observation.shape[0],3)),self.external_observation,axis=0)
+        # self.external_observation = np.insert(self.external_observation, 30, self.update_external_data(),axis=-1)
+        self.external_observation = np.append(self.external_observation, [self.update_external_data()], axis = 0)
+        self.prev_observation = observation
+        final_observation = np.concatenate((observation,self.external_observation), axis = 1)
+        #print("Act: {}".format(observation))
+        # action = np.argmax(self.agent.act(np.reshape(final_observation,(1,1,30,8))))
+        if self.agent_update_time < os.path.getmtime(self.weights):
+            print("Updating Model On Action: {}".format(self.action))
+            self.agent = ForexGenius(actions=4,weights=self.weights)
+            self.agent_update_time = os.path.getmtime(self.weights)
+        image_data = self.getImageArray(final_observation[:,:6],self.action)
+        image_data = image_data.reshape((1,)+image_data.shape)
+        action = np.argmax(self.agent.act(image_data))
+        print("Action: {} Space: {}".format(action,self.agent.act(image_data)))
+        if self.action != action:
+            print("Changing Action:{} to {}".format(self.action,action))
+            if action == 3:
+                self.close_orders()
 
-        if not np.all(np.equal(self.prev_observation, observation)):
-            self.external_observation = np.delete(self.external_observation, 1, 0)
-            if self.external_observation.shape[0] < 29:
-               self.external_observation = np.append(np.zeros((29 - self.external_observation.shape[0],3)),self.external_observation,axis=0)
-            # self.external_observation = np.insert(self.external_observation, 30, self.update_external_data(),axis=-1)
-            self.external_observation = np.append(self.external_observation, [self.update_external_data()], axis = 0)
-            self.prev_observation = observation
-            final_observation = np.concatenate((observation,self.external_observation), axis = 1)
-            #print("Act: {}".format(observation))
-            # action = np.argmax(self.agent.act(np.reshape(final_observation,(1,1,30,8))))
-            image_data = self.getImageArray(final_observation[:,:6],self.action)
-            image_data = image_data.reshape((1,)+image_data.shape)
-            action = np.argmax(self.agent.act(image_data))
-
-            if self.agent_update_time < os.path.getmtime(self.weights):
-                print("Updating Model On Action: {}".format(self.action))
-                self.agent = ForexGenius(actions=4,weights=self.weights)
-                self.agent_update_time = os.path.getmtime(self.weights)
-            if self.action != action:
-                print("Changing Action:{} to {}".format(self.action,action))
-                if action == 3:
+            if action == 1:
+                if self.action == 2:
                     self.close_orders()
-
-                if action == 1:
-                    if self.action == 2:
-                        self.close_orders()
-                    self.buy()
-                if action == 2:
-                    if self.action == 1:
-                        self.close_orders()
-                    self.sell()
-            self.action = action
+                self.buy()
+            if action == 2:
+                if self.action == 1:
+                    self.close_orders()
+                self.sell()
+        self.action = action
     def show_orders(self):
         api = self.get_api()
         response = api.trade.list_open(self.args.config.active_account)

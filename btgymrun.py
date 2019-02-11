@@ -105,10 +105,8 @@ class TradingG(BTgymEnv):
         observation, reward, done, info = super(TradingG, self).step(OrderedDict([('default_asset', action)]))
 
         if done:
-            print(self.previous)
             print("Step: {} {} Broker Cash: {} Broker Value: {} Reward: {} Action: {} Message: {}".format(info[0]["step"], info[0]["time"], info[0]["broker_cash"], info[0]["broker_value"], reward, info[0]["action"], info[0]["broker_message"]))
 
-        self.previous = "Done Step Previous: {} {} Broker Cash: {} Broker Value: {} Drawdown: {} Max Drawdown: {} Action: {} Message: {} Reward: {}".format(info[0]["step"], info[0]["time"], info[0]["broker_cash"], info[0]["broker_value"], info[0]["drawdown"], info[0]["max_drawdown"], info[0]["action"], info[0]["broker_message"], reward)
         return self.getImageArray(observation['my'],action), reward, done, info
 
 class History(Callback):
