@@ -195,7 +195,6 @@ class CandlePrinter():
             observation[i][3] = c.c
             observation[i][4] = candle.volume
             i += 1
-        print("Found")
         self.external_observation = np.delete(self.external_observation, 1, 0)
         if self.external_observation.shape[0] < 29:
             self.external_observation = np.append(np.zeros((29 - self.external_observation.shape[0],3)),self.external_observation,axis=0)
