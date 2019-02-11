@@ -22,7 +22,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 from mpl_finance import candlestick_ohlc
-
+from keras.models import load_model
 
 class CandlePrinter():
     def __init__(self):
@@ -34,7 +34,7 @@ class CandlePrinter():
         }
         self.prev_observation = np.zeros((30, 5))
         self.weights = "files/forex_complete_model.h5f"
-        self.agent = ForexGenius(actions=4,weights=self.weights)
+        self.agent = load_model(self.weights)
         self.agent_update_time = os.path.getmtime(self.weights)
         self.action = 3
         self.external_observation = np.zeros((30,3))
@@ -207,26 +207,24 @@ class CandlePrinter():
         # action = np.argmax(self.agent.act(np.reshape(final_observation,(1,1,30,8))))
         if self.agent_update_time < os.path.getmtime(self.weights):
             print("Updating Model On Action: {}".format(self.action))
-            self.agent = ForexGenius(actions=4,weights=self.weights)
+            self.agent = load_model(self.weights)
             self.agent_update_time = os.path.getmtime(self.weights)
         image_data = self.getImageArray(final_observation[:,:6],self.action)
         image_data = image_data.reshape((1,)+image_data.shape)
-        action = np.argmax(self.agent.act(image_data))
-        print("Action: {} Space: {}".format(action,self.agent.act(image_data)))
+        predicted_matrix = self.agent.predict(image_data)
+        action = np.argmax(predicted_matrix)
+        print("Action: {} Space: {}".format(action, predicted_matrix))
         if self.action != action:
             print("Changing Action:{} to {}".format(self.action,action))
-            if action == 3:
+            if action != 0:
                 self.close_orders()
 
             if action == 1:
-                if self.action == 2:
-                    self.close_orders()
                 self.buy()
             if action == 2:
-                if self.action == 1:
-                    self.close_orders()
                 self.sell()
-        self.action = action
+        else:
+            self.action = action
     def show_orders(self):
         api = self.get_api()
         response = api.trade.list_open(self.args.config.active_account)
