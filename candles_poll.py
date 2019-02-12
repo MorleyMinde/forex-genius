@@ -223,7 +223,6 @@ class CandlePrinter():
                     self.buy()
                 if action == 2:
                     self.sell()
-            else:
                 self.action = action
     def show_orders(self):
         api = self.get_api()
