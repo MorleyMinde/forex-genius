@@ -58,7 +58,7 @@ class ForexGenius(Callback):
         policy = EpsGreedyQPolicy()
 
         # model = load_model('/home/vincent/gym-trader/files/forex_complete_model.h5f')
-        self.brain = DQNAgent(model=model, nb_actions=actions, memory=memory, nb_steps_warmup=64, target_model_update=1e-2, policy=policy, enable_double_dqn=True, enable_dueling_network=True)
+        self.brain = DQNAgent(model=model, nb_actions=actions, memory=memory, nb_steps_warmup=32, target_model_update=1e-2, policy=policy, enable_double_dqn=False, enable_dueling_network=False)
 
         # self.brain = SARSAAgent(model=model, nb_actions=actions, nb_steps_warmup=10, policy=policy)
         self.brain.compile(Adam(lr=1e-3), metrics=['mae'])

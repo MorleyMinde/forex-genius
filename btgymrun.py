@@ -187,7 +187,7 @@ MyCerebro.addanalyzer(bt.analyzers.DrawDown)
 env = TradingG(
                dataset = MyDataset,
                 engine=MyCerebro,
-                   episode_duration={'days': 1, 'hours': 0, 'minutes': 0},
+                   episode_duration={'days': 0, 'hours': 2, 'minutes': 0},
                          port=5557,
                         data_port=5002,
                          verbose=1,)
