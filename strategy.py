@@ -71,8 +71,6 @@ class MyStrategy(BTgymBaseStrategy):
 
         self.reward = np.clip(self.reward, -self.p.reward_scale, self.p.reward_scale)
         if(math.isnan(self.reward)):
-            print(log)
-            print(f1)
             return 0.0
         return self.reward
     def get_my_state(self):

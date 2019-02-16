@@ -195,7 +195,17 @@ print(env.observation_space)
 
 
 agent = ForexGenius(actions=4,weights='files/forex_complete_model.h5f')
-agent.fit(env,nb_steps=1000000)
+
+o = env.reset()
+done = False
+while not done:
+
+    action = agent.act(o.reshape((1,) + o.shape))
+    print("The Action: {} Action Max: {}".format(action,np.argmax(action)))
+    obs, reward, done, info = env.step(np.argmax(action))
+    print('ACTION: {} MAX: {} \nREWARD: {}\nINFO: {}'.format(action, np.argmax(action), reward, info))
+    o = obs
+env.close()
 
 # agent.test(env)
 

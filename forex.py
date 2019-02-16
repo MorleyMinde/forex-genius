@@ -15,38 +15,35 @@ from keras import applications
 import os
 import subprocess
 from keras.models import load_model
+from keras.models import Model
 
 class ForexGenius(Callback):
     def __init__(self, weights,actions, training=True):
-        model = None
+        #model = None
         if os.path.isfile(weights):
-            model = load_model(weights)
-            self.model = model
+            self.model = load_model(weights)
         else:
-            base_model = applications.InceptionResNetV2(weights='imagenet', include_top=False, input_shape=(288, 384,3))
+            base_model = applications.InceptionV3(weights='imagenet', pooling='avg')
             base_model.trainable = False
             for layer in base_model.layers:
                 layer.trainable = False
 
-            model = Sequential()
-            model.add(base_model)
-            model.add(GlobalAveragePooling2D())
-            model.add(Dropout(0.5))
-            model.add(Activation('relu'))
-            model.add(Dense(256))
-            model.add(Dropout(0.2))
-            model.add(Dense(256))
-            model.add(Dropout(0.2))
-            model.add(Activation('relu'))
-            model.add(Dense(128))
-            model.add(Activation('relu'))
-            model.add(Dense(128))
-            model.add(Activation('relu'))
-            model.add(Dense(64))
-            model.add(Activation('relu'))
-            model.add(Dense(64))
-            model.add(Activation('relu'))
-            model.add(Dense(actions))
+            self.model = Sequential()
+            self.model.add(base_model)
+            self.model.add(Dense(1024))
+            self.model.add(Dropout(0.2))
+            self.model.add(Dense(512))
+            self.model.add(Dropout(0.2))
+            self.model.add(Activation('relu'))
+            self.model.add(Dense(256))
+            self.model.add(Activation('relu'))
+            self.model.add(Dense(128))
+            self.model.add(Activation('relu'))
+            self.model.add(Dense(64))
+            self.model.add(Activation('relu'))
+            self.model.add(Dense(64))
+            self.model.add(Activation('relu'))
+            self.model.add(Dense(actions))
         # model.add(Activation('softmax'))
         # print(model.summary())
         # print(model.to_json())
@@ -58,9 +55,9 @@ class ForexGenius(Callback):
         policy = EpsGreedyQPolicy()
 
         # model = load_model('/home/vincent/gym-trader/files/forex_complete_model.h5f')
-        self.brain = DQNAgent(model=model, nb_actions=actions, memory=memory, nb_steps_warmup=32, target_model_update=1e-2, policy=policy, enable_double_dqn=False, enable_dueling_network=False)
+        # self.brain = DQNAgent(model=self.model, nb_actions=actions, memory=memory, nb_steps_warmup=32, target_model_update=1e-2, policy=policy, enable_double_dqn=True, enable_dueling_network=True)
 
-        # self.brain = SARSAAgent(model=model, nb_actions=actions, nb_steps_warmup=10, policy=policy)
+        self.brain = SARSAAgent(model=self.model, nb_actions=actions, nb_steps_warmup=10, policy=policy)
         self.brain.compile(Adam(lr=1e-3), metrics=['mae'])
         self.weight_backup = weights
         self.brain.model.summary()

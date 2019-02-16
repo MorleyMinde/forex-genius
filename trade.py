@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 from mpl_finance import candlestick_ohlc
 from keras.models import load_model
+from keras.applications.inception_v3 import preprocess_input
 
 class CandlePrinter():
     def __init__(self):
@@ -38,6 +39,7 @@ class CandlePrinter():
         self.agent_update_time = os.path.getmtime(self.weights)
         self.action = 3
         self.external_observation = np.zeros((30,3))
+        self.final_observation = np.zeros((30,8))
         self.current_trade = None
         self.show_orders()
         self.dts = []
@@ -127,8 +129,10 @@ class CandlePrinter():
         observation = np.append(self.dts,observation,axis=1)
         # observation = np.append(self.dts,observation,axis=1)
 
-        dpi = 60
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True, gridspec_kw={'height_ratios': [3,1,1,0.2]},figsize=(384/dpi, 288/dpi),dpi=dpi)
+        # dpi = 60
+        # fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True, gridspec_kw={'height_ratios': [3,1,1,0.2]},figsize=(384/dpi, 288/dpi),dpi=dpi)
+
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True, gridspec_kw={'height_ratios': [3,1,1,0.2]})
 
         ax1.xaxis_date()
         candlestick_ohlc(ax1, observation, width=0.0005, colorup='green', colordown='red')
@@ -182,7 +186,8 @@ class CandlePrinter():
         data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
         # plt.show()
         plt.close(fig)
-        return data/255
+        return preprocess_input(data)
+
     def use_agent(self):
         observation = np.zeros((30, 5))
         i = 0;
@@ -195,35 +200,35 @@ class CandlePrinter():
             observation[i][3] = c.c
             observation[i][4] = candle.volume
             i += 1
-        if not np.all(np.equal(self.prev_observation, observation)):
-            self.external_observation = np.delete(self.external_observation, 1, 0)
-            if self.external_observation.shape[0] < 29:
-                self.external_observation = np.append(np.zeros((29 - self.external_observation.shape[0],3)),self.external_observation,axis=0)
-            # self.external_observation = np.insert(self.external_observation, 30, self.update_external_data(),axis=-1)
-            self.external_observation = np.append(self.external_observation, [self.update_external_data()], axis = 0)
-            self.prev_observation = observation
-            final_observation = np.concatenate((observation,self.external_observation), axis = 1)
-            #print("Act: {}".format(observation))
-            # action = np.argmax(self.agent.act(np.reshape(final_observation,(1,1,30,8))))
-            if self.agent_update_time < os.path.getmtime(self.weights):
-                print("Updating Model On Action: {}".format(self.action))
-                self.agent = load_model(self.weights)
-                self.agent_update_time = os.path.getmtime(self.weights)
-            image_data = self.getImageArray(final_observation[:,:6],self.action)
-            image_data = image_data.reshape((1,)+image_data.shape)
-            predicted_matrix = self.agent.predict(image_data)
-            action = np.argmax(predicted_matrix)
-            print("Action: {} Space: {}".format(action, predicted_matrix))
-            if self.action != action:
-                print("Changing Action:{} to {}".format(self.action,action))
-                if action != 0:
-                    self.close_orders()
+        self.external_observation = np.delete(self.external_observation, 1, 0)
+        if self.external_observation.shape[0] < 29:
+            self.external_observation = np.append(np.zeros((29 - self.external_observation.shape[0],3)),self.external_observation,axis=0)
+        # self.external_observation = np.insert(self.external_observation, 30, self.update_external_data(),axis=-1)
+        self.external_observation = np.append(self.external_observation, [self.update_external_data()], axis = 0)
+        self.prev_observation = observation
+        final_observation = np.concatenate((observation,self.external_observation), axis = 1)
 
-                if action == 1:
-                    self.buy()
-                if action == 2:
-                    self.sell()
-                self.action = action
+        self.final_observation = final_observation
+        if self.agent_update_time < os.path.getmtime(self.weights):
+            print("Updating Model On Action: {}".format(self.action))
+            self.agent = load_model(self.weights)
+            self.agent_update_time = os.path.getmtime(self.weights)
+        image_data = self.getImageArray(final_observation[:,:6],self.action)
+        image_data = image_data.reshape((1,)+image_data.shape)
+        predicted_matrix = self.agent.predict(image_data)
+        action = np.argmax(predicted_matrix)
+
+        if self.action != action:
+            print("Changing Action:{} to {}".format(self.action,action))
+            if action != 0:
+                self.close_orders()
+
+            if action == 1:
+                self.buy()
+            if action == 2:
+                self.sell()
+            self.action = action
+
     def show_orders(self):
         api = self.get_api()
         response = api.trade.list_open(self.args.config.active_account)
