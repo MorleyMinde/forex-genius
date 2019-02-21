@@ -45,9 +45,9 @@ class CandlePrinter():
         self.dts = []
 
     def load_model(self):
-        if self.agent != None:
+        if hasattr(self, 'agent'):
             self.agent.dispose()
-        self.agent = ForexGenius(actions=4,weights=self.weights)
+        return ForexGenius(actions=4,weights=self.weights)
 
     def set_instrument(self, instrument):
         self.instrument = instrument
