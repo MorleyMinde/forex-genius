@@ -35,7 +35,7 @@ class CandlePrinter():
         }
         self.prev_observation = np.zeros((30, 5))
         self.weights = "files/forex_model.h5f"
-        self.agent = ForexGenius(actions=4,weights=self.weights)
+        self.agent = self.load_model()
         self.agent_update_time = os.path.getmtime(self.weights)
         self.action = 3
         self.external_observation = np.zeros((30,3))
@@ -45,6 +45,8 @@ class CandlePrinter():
         self.dts = []
 
     def load_model(self):
+        if self.agent != None:
+            self.agent.dispose()
         self.agent = ForexGenius(actions=4,weights=self.weights)
 
     def set_instrument(self, instrument):

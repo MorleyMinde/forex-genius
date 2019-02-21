@@ -5,6 +5,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout, Flatten, Input,Reshape, GlobalAveragePooling2D
 from keras.layers.recurrent import GRU
 from keras.optimizers import Adam
+from tensorflow.python.estimator import keras
 
 from rl.agents import SARSAAgent
 from rl.agents.dqn import DQNAgent
@@ -109,6 +110,9 @@ class ForexGenius(Callback):
                 verbose=verbose,
                 steps=steps)
 
+    def dispose(self):
+        del self.model
+        keras.backend.clear_session()
     def on_train_begin(self, logs={}):
         print('on_train_begin Logs: {}'.format(logs))
         return
