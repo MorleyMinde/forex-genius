@@ -20,16 +20,17 @@ from keras.models import Model
 class ForexGenius(Callback):
     def __init__(self, weights,actions, training=True):
         #model = None
-        if os.path.isfile(weights):
-            self.model = load_model(weights)
-        else:
-            base_model = applications.InceptionV3(weights='imagenet', pooling='avg')
-            base_model.trainable = False
-            for layer in base_model.layers:
+        # if os.path.isfile(weights):
+        #     self.model = load_model(weights)
+        # else:
+        if True:
+            self.base_model = applications.InceptionV3(weights='imagenet', pooling='avg')
+            self.base_model.trainable = False
+            for layer in self.base_model.layers:
                 layer.trainable = False
 
             self.model = Sequential()
-            self.model.add(base_model)
+            self.model.add(self.base_model)
             self.model.add(Dense(1024))
             self.model.add(Dropout(0.2))
             self.model.add(Dense(512))
@@ -47,24 +48,25 @@ class ForexGenius(Callback):
         # model.add(Activation('softmax'))
         # print(model.summary())
         # print(model.to_json())
-        memory = SequentialMemory(limit=50000, window_length=1)
-        # policy = MaxBoltzmannQPolicy()
-        # policy = BoltzmannGumbelQPolicy()
-        # policy = BoltzmannQPolicy()
-        # policy = GreedyQPolicy()
-        policy = EpsGreedyQPolicy()
+        if training:
+            memory = SequentialMemory(limit=50000, window_length=1)
+            # policy = MaxBoltzmannQPolicy()
+            # policy = BoltzmannGumbelQPolicy()
+            # policy = BoltzmannQPolicy()
+            # policy = GreedyQPolicy()
+            policy = EpsGreedyQPolicy()
 
-        # model = load_model('/home/vincent/gym-trader/files/forex_complete_model.h5f')
-        # self.brain = DQNAgent(model=self.model, nb_actions=actions, memory=memory, nb_steps_warmup=32, target_model_update=1e-2, policy=policy, enable_double_dqn=True, enable_dueling_network=True)
+            # model = load_model('/home/vincent/gym-trader/files/forex_complete_model.h5f')
+            # self.brain = DQNAgent(model=self.model, nb_actions=actions, memory=memory, nb_steps_warmup=32, target_model_update=1e-2, policy=policy, enable_double_dqn=True, enable_dueling_network=True)
 
-        self.brain = SARSAAgent(model=self.model, nb_actions=actions, nb_steps_warmup=10, policy=policy)
-        self.brain.compile(Adam(lr=1e-3), metrics=['mae'])
+            self.brain = SARSAAgent(model=self.model, nb_actions=actions, nb_steps_warmup=10, policy=policy)
+            self.brain.compile(Adam(lr=1e-3), metrics=['mae'])
+            self.brain.model.summary()
         self.weight_backup = weights
-        self.brain.model.summary()
         self.times = 1
         #model.save('files/forex_complete_model.h5f')
-        #if os.path.isfile(self.weight_backup):
-        #    self.brain.load_weights(self.weight_backup)
+        if os.path.isfile(self.weight_backup):
+            self.model.load_weights(self.weight_backup)
 
     def fit(self,env,nb_steps=5000,callbacks=[]):
         try:
@@ -77,7 +79,7 @@ class ForexGenius(Callback):
 
     def save(self):
         self.times = self.times + 1
-        self.brain.model.save(self.weight_backup)
+        self.model.save_weights(self.weight_backup, overwrite=True)
         print("Save Awesomely")
 
         #if self.times == 100:
@@ -95,6 +97,14 @@ class ForexGenius(Callback):
                 verbose=0,
                 steps=None):
         return self.model.predict(x,
+                batch_size=batch_size,
+                verbose=verbose,
+                steps=steps)
+    def base_act(self, x,
+                batch_size=None,
+                verbose=0,
+                steps=None):
+        return self.base_model.predict(x,
                 batch_size=batch_size,
                 verbose=verbose,
                 steps=steps)

@@ -34,8 +34,8 @@ class CandlePrinter():
             'volume' : 6,
         }
         self.prev_observation = np.zeros((30, 5))
-        self.weights = "files/forex_complete_model.h5f"
-        self.agent = load_model(self.weights)
+        self.weights = "files/forex_model.h5f"
+        self.agent = ForexGenius(actions=4,weights=self.weights)
         self.agent_update_time = os.path.getmtime(self.weights)
         self.action = 3
         self.external_observation = np.zeros((30,3))
@@ -43,6 +43,9 @@ class CandlePrinter():
         self.current_trade = None
         self.show_orders()
         self.dts = []
+
+    def load_model(self):
+        self.agent = ForexGenius(actions=4,weights=self.weights)
 
     def set_instrument(self, instrument):
         self.instrument = instrument
@@ -211,11 +214,11 @@ class CandlePrinter():
         self.final_observation = final_observation
         if self.agent_update_time < os.path.getmtime(self.weights):
             print("Updating Model On Action: {}".format(self.action))
-            self.agent = load_model(self.weights)
+            self.agent = self.load_model()
             self.agent_update_time = os.path.getmtime(self.weights)
         image_data = self.getImageArray(final_observation[:,:6],self.action)
         image_data = image_data.reshape((1,)+image_data.shape)
-        predicted_matrix = self.agent.predict(image_data)
+        predicted_matrix = self.agent.act(image_data)
         action = np.argmax(predicted_matrix)
 
         if self.action != action:
