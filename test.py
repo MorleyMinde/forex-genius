@@ -88,8 +88,8 @@ done = False
 print(o.shape)
 while not done:
     action = agent.act(o.reshape((1,) + o.shape))
-    prediction = agent.base_act(o.reshape((1,) + o.shape))
-    print('Predicted:', decode_predictions(prediction));
+    # prediction = agent.base_act(o.reshape((1,) + o.shape))
+    # print('Predicted:', decode_predictions(prediction));
     #print("The Action: {} Action Max: {}".format(action,np.argmax(action)))
     obs, reward, done, info = env.step(np.argmax(action),show=True)
     print('ACTION: {} MAX: {} REWARD: {}'.format(action, np.argmax(action), reward))

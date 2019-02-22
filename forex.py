@@ -25,15 +25,17 @@ class ForexGenius(Callback):
         #     self.model = load_model(weights)
         # else:
         if True:
-            self.base_model = applications.InceptionV3(weights='imagenet', pooling='avg')
+            self.base_model = applications.InceptionV3(weights='imagenet', include_top=False)
             self.base_model.trainable = False
             for layer in self.base_model.layers:
                 layer.trainable = False
 
             self.model = Sequential()
             self.model.add(self.base_model)
+            self.model.add(GlobalAveragePooling2D(name='avg_pool'))
             self.model.add(Dense(1024))
             self.model.add(Dropout(0.2))
+            self.model.add(Activation('relu'))
             self.model.add(Dense(512))
             self.model.add(Dropout(0.2))
             self.model.add(Activation('relu'))
