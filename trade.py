@@ -222,6 +222,7 @@ class CandlePrinter():
         image_data = image_data.reshape((1,)+image_data.shape)
         predicted_matrix = self.agent.act(image_data)
         action = np.argmax(predicted_matrix)
+        print('Matrix: {} , Action: {}'.format(predicted_matrix, action))
 
         if self.action != action:
             print("Changing Action:{} to {}".format(self.action,action))

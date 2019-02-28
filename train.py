@@ -37,7 +37,7 @@ params = dict(
         # Random-sampling params:
         start_weekdays=[0, 1, 2, 3, ],  # Only weekdays from the list will be used for episode start.
         start_00=True,  # Episode start time will be set to first record of the day (usually 00:00).
-        episode_duration={'days': 0, 'hours': 2, 'minutes': 0},
+        episode_duration={'days': 0, 'hours': 1, 'minutes': 0},
         # time_gap={'days': 0, 'hours': 5, 'minutes': 55},
     )
 
@@ -68,7 +68,6 @@ MyCerebro.addanalyzer(bt.analyzers.DrawDown)
 env = TradingG(
                dataset = MyDataset,
                 engine=MyCerebro,
-                   episode_duration={'days': 1, 'hours': 0, 'minutes': 0},
                          port=5557,
                         data_port=5002,
                          verbose=1,)
@@ -94,6 +93,6 @@ env.close()
 """
 
 tar -cjvf archive.tar.bz2 stuff
-rsync -av --progress files/forex_complete_model.h5f vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/
+rsync -av --progress files/forex_model.h5f vincentminde@72.14.186.65:/home/vincentminde/forex-genius/files/
 
 """

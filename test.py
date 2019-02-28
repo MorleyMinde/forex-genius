@@ -45,7 +45,7 @@ params = dict(
         # Random-sampling params:
         start_weekdays=[0, 1, 2, 3, ],  # Only weekdays from the list will be used for episode start.
         start_00=True,  # Episode start time will be set to first record of the day (usually 00:00).
-        episode_duration={'days': 0, 'hours': 2, 'minutes': 0},
+        episode_duration={'days': 0, 'hours': 1, 'minutes': 0},
         # time_gap={'days': 0, 'hours': 5, 'minutes': 55},
     )
 
@@ -76,24 +76,19 @@ MyCerebro.addanalyzer(bt.analyzers.DrawDown)
 env = TradingG(
                dataset = MyDataset,
                 engine=MyCerebro,
-                   episode_duration={'days': 0, 'hours': 2, 'minutes': 0},
-                         port=5557,
-                        data_port=5002,
+                         port=5558,
+                        data_port=5003,
                          verbose=1,)
 
 agent = ForexGenius(actions=4,weights='files/forex_model.h5f', training=False)
 
-o = env.reset(show=True)
+o = env.reset()
 done = False
 print(o.shape)
 while not done:
     action = agent.act(o.reshape((1,) + o.shape))
-    # prediction = agent.base_act(o.reshape((1,) + o.shape))
-    # print('Predicted:', decode_predictions(prediction));
-    #print("The Action: {} Action Max: {}".format(action,np.argmax(action)))
-    obs, reward, done, info = env.step(np.argmax(action),show=True)
+    obs, reward, done, info = env.step(np.argmax(action),show=False)
     print('ACTION: {} MAX: {} REWARD: {}'.format(action, np.argmax(action), reward))
-    print(np.array_equal(o,obs))
     o = obs
 env.close()
 
