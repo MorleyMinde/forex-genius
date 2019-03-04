@@ -114,7 +114,7 @@ class ForexGenius(Callback):
 
     def dispose(self):
         del self.model
-        keras.backend.clear_session()
+        # keras.backend.clear_session()
     def on_train_begin(self, logs={}):
         print('on_train_begin Logs: {}'.format(logs))
         return
